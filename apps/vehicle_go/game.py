@@ -99,6 +99,11 @@ class VehicleGoGame(BaseGame):
         # UI
         self.back_button = BackButton(x=20, y=20, on_click=self.request_return_to_launcher)
 
+        # カスタムアセット
+        self.custom_images: dict[str, pygame.Surface] = {}
+        self.custom_sounds: dict[str, pygame.mixer.Sound] = {}
+        self._load_custom_assets()
+
         # フォント
         self.title_font = get_font(48)
         self.name_font = get_font(24)
@@ -217,6 +222,34 @@ class VehicleGoGame(BaseGame):
             y = start_y + row * (button_size + spacing)
             self.vehicle_rects.append(pygame.Rect(x, y, button_size, button_size))
 
+    def _load_custom_assets(self) -> None:
+        """カスタム画像・音声を読み込む（存在する場合のみ）"""
+        for vehicle in self.vehicles:
+            key = vehicle.image_key
+
+            # カスタム画像の読み込み
+            for ext in ["png", "jpg", "bmp"]:
+                image_path = IMAGES_DIR / f"{key}.{ext}"
+                if image_path.exists():
+                    try:
+                        image = pygame.image.load(str(image_path)).convert_alpha()
+                        self.custom_images[key] = image
+                        break
+                    except pygame.error:
+                        pass
+
+            # カスタム音声の読み込み
+            for ext in ["wav", "ogg", "mp3"]:
+                sound_path = SOUNDS_DIR / f"{key}.{ext}"
+                if sound_path.exists():
+                    try:
+                        sound = pygame.mixer.Sound(str(sound_path))
+                        sound.set_volume(0.5)
+                        self.custom_sounds[key] = sound
+                        break
+                    except pygame.error:
+                        pass
+
     def _create_engine_sound(self, freq: float, duration: float = 1.5) -> pygame.mixer.Sound:
         """エンジン音を生成"""
         sample_rate = 22050
@@ -306,8 +339,10 @@ class VehicleGoGame(BaseGame):
         self.wheel_rotation = 0
         self.particles.clear()
 
-        # サウンド再生
-        if vehicle.image_key in ["firetruck", "ambulance"]:
+        # サウンド再生（カスタム音声があれば使用）
+        if vehicle.image_key in self.custom_sounds:
+            self.current_sound = self.custom_sounds[vehicle.image_key]
+        elif vehicle.image_key in ["firetruck", "ambulance"]:
             self.current_sound = self._create_siren_sound(400, 500)
         elif vehicle.image_key == "ship":
             self.current_sound = self._create_horn_sound(vehicle.sound_freq)
@@ -601,12 +636,19 @@ class VehicleGoGame(BaseGame):
         pygame.draw.rect(screen, vehicle.color, rect, border_radius=15)
         pygame.draw.rect(screen, (50, 50, 50), rect, 3, border_radius=15)
 
-        # 乗り物を小さく描画
         cx = rect.centerx
         cy = rect.centery - 10
         icon_size = rect.width * 0.6
 
-        vehicle.draw_func(screen, cx, cy, icon_size, vehicle)
+        # カスタム画像があれば使用、なければプリミティブ描画
+        if vehicle.image_key in self.custom_images:
+            image = self.custom_images[vehicle.image_key]
+            # アイコンサイズにスケール
+            scaled = pygame.transform.scale(image, (int(icon_size), int(icon_size * 0.7)))
+            image_rect = scaled.get_rect(center=(cx, cy))
+            screen.blit(scaled, image_rect)
+        else:
+            vehicle.draw_func(screen, cx, cy, icon_size, vehicle)
 
         # 名前
         name_surface = self.name_font.render(vehicle.name, True, WHITE)
@@ -708,13 +750,22 @@ class VehicleGoGame(BaseGame):
 
         # 走行中の乗り物
         if self.is_running and self.running_vehicle:
-            self.running_vehicle.draw_func(
-                self.screen,
-                self.vehicle_x,
-                self.vehicle_y,
-                120,
-                self.running_vehicle
-            )
+            vehicle = self.running_vehicle
+            if vehicle.image_key in self.custom_images:
+                # カスタム画像を使用
+                image = self.custom_images[vehicle.image_key]
+                scaled = pygame.transform.scale(image, (150, 100))
+                image_rect = scaled.get_rect(center=(int(self.vehicle_x), int(self.vehicle_y)))
+                self.screen.blit(scaled, image_rect)
+            else:
+                # プリミティブ描画
+                vehicle.draw_func(
+                    self.screen,
+                    self.vehicle_x,
+                    self.vehicle_y,
+                    120,
+                    vehicle
+                )
 
         # ヒント
         if not self.is_running:

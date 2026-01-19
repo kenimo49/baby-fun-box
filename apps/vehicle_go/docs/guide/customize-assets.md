@@ -112,34 +112,23 @@ apps/vehicle_go/
 3. **子供が怖がらない**音を選ぶ
 4. **フェードイン/アウト**を追加
 
-## コード側の対応
+## 自動読み込み機能
 
-現在の実装では、カスタムアセットの読み込みは自動では行われません。
-カスタムアセットを使用する場合は、`game.py` を以下のように修正します。
+カスタムアセットは**ゲーム起動時に自動的に読み込まれます**。
 
-### 画像読み込みの追加
+ファイルを正しい場所に配置するだけで、コードの修正は不要です：
 
-```python
-def _load_custom_image(self, key: str) -> pygame.Surface | None:
-    """カスタム画像を読み込む"""
-    for ext in ['png', 'jpg', 'bmp']:
-        path = Path(__file__).parent / f"assets/images/{key}.{ext}"
-        if path.exists():
-            return pygame.image.load(str(path)).convert_alpha()
-    return None
-```
+1. 画像ファイルを `assets/images/` に配置
+2. 音声ファイルを `assets/sounds/` に配置
+3. ゲームを起動すると自動的にカスタムアセットが使用される
 
-### 音声読み込みの追加
+カスタムアセットが見つからない場合は、デフォルトのプリミティブ描画・手続き的音声生成が使用されます。
 
-```python
-def _load_custom_sound(self, key: str) -> pygame.mixer.Sound | None:
-    """カスタム音声を読み込む"""
-    for ext in ['wav', 'ogg', 'mp3']:
-        path = Path(__file__).parent / f"assets/sounds/{key}.{ext}"
-        if path.exists():
-            return pygame.mixer.Sound(str(path))
-    return None
-```
+### 読み込み優先順位
+
+**画像**: `png` → `jpg` → `bmp`
+
+**音声**: `wav` → `ogg` → `mp3`
 
 ## フリー素材リソース
 
