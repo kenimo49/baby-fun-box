@@ -10,6 +10,7 @@ import pygame
 from apps.animal_touch.game import AnimalTouchGame
 from apps.baby_piano.game import BabyPianoGame
 from apps.balloon_pop.game import BalloonPopGame
+from apps.vehicle_go.game import VehicleGoGame
 from apps.launcher import Launcher
 from shared.constants import DEFAULT_HEIGHT, DEFAULT_WIDTH
 
@@ -31,6 +32,7 @@ def main() -> None:
     launcher.register_game(BalloonPopGame)
     launcher.register_game(AnimalTouchGame)
     launcher.register_game(BabyPianoGame)
+    launcher.register_game(VehicleGoGame)
 
     # ランチャーを実行
     launcher.run()
