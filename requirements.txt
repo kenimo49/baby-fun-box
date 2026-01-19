@@ -1,0 +1,12 @@
+# Baby Fun Box - Dependencies
+
+# Game development
+pygame>=2.5.0
+
+# Development tools
+pytest>=7.0.0
+black>=23.0.0
+mypy>=1.0.0
+
+# Type stubs (optional - pygame-stubs may not be available on all systems)
+# pygame-stubs>=2.5.0
