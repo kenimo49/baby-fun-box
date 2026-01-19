@@ -6,6 +6,10 @@ related:
   - ../game.py
   - guide/how-to-play.md
   - guide/customize-assets.md
+  - knowledge/animation-system.md
+  - knowledge/sound-generation.md
+  - design/vehicle-selection.md
+  - design/procedural-assets.md
 ---
 
 # Vehicle Go - のりものビュンビュン
@@ -33,10 +37,26 @@ related:
 
 ## ドキュメント
 
+### ガイド (guide/)
+
 | ドキュメント | 内容 |
 |--------------|------|
 | [遊び方](guide/how-to-play.md) | 基本的な遊び方 |
 | [カスタマイズ](guide/customize-assets.md) | 画像・音声の変更方法 |
+
+### 技術詳細 (knowledge/)
+
+| ドキュメント | 内容 |
+|--------------|------|
+| [アニメーションシステム](knowledge/animation-system.md) | 移動・描画・パーティクルの仕組み |
+| [音声生成システム](knowledge/sound-generation.md) | 手続き的音声生成の仕組み |
+
+### 設計思想 (design/)
+
+| ドキュメント | 内容 |
+|--------------|------|
+| [乗り物選定](design/vehicle-selection.md) | 8種類の乗り物を選んだ理由 |
+| [手続き的アセット](design/procedural-assets.md) | プリミティブ描画・音声生成を採用した理由 |
 
 ## 単体実行
 
