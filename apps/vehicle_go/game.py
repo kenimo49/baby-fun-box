@@ -106,7 +106,7 @@ class VehicleGoGame(BaseGame):
 
         # フォント
         self.title_font = get_font(48)
-        self.name_font = get_font(24)
+        self.name_font = get_font(18)  # 乗り物名用（小さめ）
         self.hint_font = get_font(28)
 
         # アニメーション領域
@@ -650,8 +650,8 @@ class VehicleGoGame(BaseGame):
         else:
             vehicle.draw_func(screen, cx, cy, icon_size, vehicle)
 
-        # 名前
-        name_surface = self.name_font.render(vehicle.name, True, WHITE)
+        # 名前（黒色）
+        name_surface = self.name_font.render(vehicle.name, True, (0, 0, 0))
         name_rect = name_surface.get_rect(centerx=rect.centerx, bottom=rect.bottom - 5)
         screen.blit(name_surface, name_rect)
 
