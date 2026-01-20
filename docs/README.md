@@ -17,6 +17,7 @@
 ```
 docs/
 ├── README.md          # このファイル（ドキュメント全体のインデックス）
+├── troubleshooting.md # トラブルシューティング（統合版）
 ├── knowledge/         # 実践的知識（HOW）
 ├── design/            # 設計思想（WHY）
 ├── guide/             # ガイドライン
