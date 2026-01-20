@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- 背景（角丸四角形） -->
+  <rect x="16" y="16" width="224" height="224" rx="32" ry="32" fill="white" stroke="#c8c8c8" stroke-width="2"/>
+
+  <!-- 左上: 赤 -->
+  <rect x="32" y="32" width="88" height="88" rx="16" ry="16" fill="#FF595E"/>
+  <!-- 星 -->
+  <polygon points="76,52 82,68 99,68 85,78 91,94 76,84 61,94 67,78 53,68 70,68" fill="rgba(255,255,255,0.8)"/>
+
+  <!-- 右上: 黄 -->
+  <rect x="128" y="32" width="88" height="88" rx="16" ry="16" fill="#FFCA3A"/>
+  <!-- ハート -->
+  <path d="M172,60 C162,50 148,58 148,70 C148,82 172,98 172,98 C172,98 196,82 196,70 C196,58 182,50 172,60 Z" fill="rgba(255,255,255,0.8)"/>
+
+  <!-- 左下: 緑 -->
+  <rect x="32" y="128" width="88" height="88" rx="16" ry="16" fill="#8AC926"/>
+  <!-- 円 -->
+  <circle cx="76" cy="172" r="24" fill="rgba(255,255,255,0.8)"/>
+
+  <!-- 右下: 青 -->
+  <rect x="128" y="128" width="88" height="88" rx="16" ry="16" fill="#1982C4"/>
+  <!-- 三角形 -->
+  <polygon points="172,148 148,196 196,196" fill="rgba(255,255,255,0.8)"/>
+</svg>

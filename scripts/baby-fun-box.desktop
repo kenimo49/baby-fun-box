@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Baby Fun Box
+Name[ja]=Baby Fun Box
+GenericName=Baby Games
+GenericName[ja]=幼児向けゲーム
+Comment=Fun game collection for toddlers (1-2 years old)
+Comment[ja]=1〜2歳向けの楽しいゲームコレクション
+Exec=INSTALL_PATH/baby-fun-box
+Icon=INSTALL_PATH/baby-fun-box.png
+Terminal=false
+Categories=Game;Education;KidsGame;
+Keywords=baby;toddler;kids;game;education;
+StartupWMClass=baby-fun-box
