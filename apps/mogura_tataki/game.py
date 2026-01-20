@@ -635,10 +635,6 @@ class MoguraTatakiGame(BaseGame):
         start_text_rect = start_text.get_rect(center=self.start_button_rect.center)
         self.screen.blit(start_text, start_text_rect)
 
-        # 穴の装飾（背景用）
-        for hole in self.holes:
-            self._draw_hole(self.screen, hole)
-
     def _draw_playing_screen(self) -> None:
         """プレイ画面を描画"""
         # タイマー表示
