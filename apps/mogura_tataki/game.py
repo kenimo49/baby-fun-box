@@ -85,7 +85,7 @@ class MoguraTatakiGame(BaseGame):
     MAX_SHOW_TIME = 4.0  # 最大表示時間
     POP_SPEED = 3.0  # 出現速度
     SPAWN_INTERVAL = 1.5  # 出現間隔
-    GAME_TIME = 60.0  # ゲーム時間（秒）
+    GAME_TIME = 30.0  # ゲーム時間（秒）
 
     def __init__(self, screen: pygame.Surface) -> None:
         super().__init__(screen)
@@ -623,7 +623,7 @@ class MoguraTatakiGame(BaseGame):
         self.screen.blit(title_text, title_rect)
 
         # 説明
-        desc_text = self.hint_font.render("60びょうで どうぶつを たくさんタッチしよう！", True, (80, 100, 60))
+        desc_text = self.hint_font.render("30びょうで どうぶつを たくさんタッチしよう！", True, (80, 100, 60))
         desc_rect = desc_text.get_rect(centerx=self.width // 2, top=title_rect.bottom + 40)
         self.screen.blit(desc_text, desc_rect)
 
@@ -696,12 +696,12 @@ class MoguraTatakiGame(BaseGame):
         pygame.draw.rect(self.screen, BABY_ORANGE, score_bg, 5, border_radius=20)
         self.screen.blit(score_text, score_rect)
 
-        # 褒め言葉
-        if self.score >= 30:
+        # 褒め言葉（30秒用の基準）
+        if self.score >= 15:
             praise = "すごーい！"
-        elif self.score >= 20:
-            praise = "がんばったね！"
         elif self.score >= 10:
+            praise = "がんばったね！"
+        elif self.score >= 5:
             praise = "いいね！"
         else:
             praise = "たのしかったね！"
