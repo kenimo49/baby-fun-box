@@ -10,6 +10,7 @@ import pygame
 from apps.animal_touch.game import AnimalTouchGame
 from apps.baby_piano.game import BabyPianoGame
 from apps.balloon_pop.game import BalloonPopGame
+from apps.mogura_tataki.game import MoguraTatakiGame
 from apps.oekaki_rakugaki.game import OekakiRakugakiGame
 from apps.vehicle_go.game import VehicleGoGame
 from apps.launcher import Launcher
@@ -35,6 +36,7 @@ def main() -> None:
     launcher.register_game(BabyPianoGame)
     launcher.register_game(VehicleGoGame)
     launcher.register_game(OekakiRakugakiGame)
+    launcher.register_game(MoguraTatakiGame)
 
     # ランチャーを実行
     launcher.run()
