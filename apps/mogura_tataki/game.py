@@ -4,14 +4,14 @@ MoguraTatakiGame - もぐらたたき
 1〜2歳児向けに設計:
 - かわいい動物が穴から顔を出す
 - タップすると楽しいリアクション
-- ゆっくりペースで焦らず遊べる
-- スコアやタイムリミットなし
+- 60秒のゲーム時間でスコアを競う
 """
 
 import array
 import math
 import random
 from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
 
 import pygame
@@ -30,6 +30,13 @@ from shared.constants import (
     WHITE,
 )
 from shared.fonts import get_font
+
+
+class GameState(Enum):
+    """ゲーム状態"""
+    START = auto()    # スタート画面
+    PLAYING = auto()  # プレイ中
+    RESULT = auto()   # 結果画面
 
 # アセットディレクトリ
 ASSETS_DIR = Path(__file__).parent / "assets"
@@ -78,6 +85,7 @@ class MoguraTatakiGame(BaseGame):
     MAX_SHOW_TIME = 4.0  # 最大表示時間
     POP_SPEED = 3.0  # 出現速度
     SPAWN_INTERVAL = 1.5  # 出現間隔
+    GAME_TIME = 60.0  # ゲーム時間（秒）
 
     def __init__(self, screen: pygame.Surface) -> None:
         super().__init__(screen)
@@ -97,8 +105,11 @@ class MoguraTatakiGame(BaseGame):
         self._setup_holes()
 
         # ゲーム状態
+        self.game_state = GameState.START
         self.spawn_timer = 1.0  # 最初の出現までの時間
         self.active_count = 0  # 現在出ているキャラクター数
+        self.score = 0  # スコア
+        self.remaining_time = self.GAME_TIME  # 残り時間
 
         # エフェクト
         self.particles: list[dict] = []
@@ -108,6 +119,7 @@ class MoguraTatakiGame(BaseGame):
         self.pop_sound: pygame.mixer.Sound | None = None
         self.tap_sound: pygame.mixer.Sound | None = None
         self.miss_sound: pygame.mixer.Sound | None = None
+        self.finish_sound: pygame.mixer.Sound | None = None
 
         # カスタム画像
         self.custom_images: dict[str, pygame.Surface] = {}
@@ -116,9 +128,19 @@ class MoguraTatakiGame(BaseGame):
         # UI
         self.back_button = BackButton(x=20, y=20, on_click=self.request_return_to_launcher)
 
+        # ボタン領域
+        self.start_button_rect = pygame.Rect(0, 0, 300, 80)
+        self.start_button_rect.center = (self.width // 2, self.height // 2 + 50)
+        self.retry_button_rect = pygame.Rect(0, 0, 250, 70)
+        self.retry_button_rect.center = (self.width // 2, self.height // 2 + 100)
+
         # フォント
         self.title_font = get_font(42)
         self.hint_font = get_font(28)
+        self.score_font = get_font(36)
+        self.timer_font = get_font(48)
+        self.big_font = get_font(72)
+        self.button_font = get_font(32)
 
     def _setup_holes(self) -> None:
         """穴をセットアップ"""
@@ -233,6 +255,61 @@ class MoguraTatakiGame(BaseGame):
             self.custom_sounds["tap"].play()
         elif self.tap_sound:
             self.tap_sound.play()
+
+    def _create_finish_sound(self) -> pygame.mixer.Sound:
+        """終了音を生成（ファンファーレ風）"""
+        sample_rate = 22050
+        duration = 0.8
+        samples = int(sample_rate * duration)
+        sound_array = array.array("h")
+
+        for i in range(samples):
+            t = i / sample_rate
+            envelope = max(0, 1.0 - (t / duration) ** 0.5)
+
+            # 上昇するファンファーレ
+            value = 0.0
+            if t < 0.2:
+                freq = 392  # G
+            elif t < 0.4:
+                freq = 523  # C
+            elif t < 0.6:
+                freq = 659  # E
+            else:
+                freq = 784  # High G
+
+            value = math.sin(2 * math.pi * freq * t)
+            # ハーモニクス追加
+            value += 0.3 * math.sin(2 * math.pi * freq * 2 * t)
+
+            amplitude = int(12000 * envelope * value)
+            sound_array.append(max(-32767, min(32767, amplitude)))
+
+        sound = pygame.mixer.Sound(buffer=sound_array)
+        sound.set_volume(0.4)
+        return sound
+
+    def _play_finish_sound(self) -> None:
+        """終了音を再生"""
+        if "finish" in self.custom_sounds:
+            self.custom_sounds["finish"].play()
+        elif self.finish_sound:
+            self.finish_sound.play()
+
+    def _reset_game(self) -> None:
+        """ゲームをリセット"""
+        self.score = 0
+        self.remaining_time = self.GAME_TIME
+        self.spawn_timer = 1.0
+        self.active_count = 0
+        self.particles.clear()
+
+        # 穴をリセット
+        for hole in self.holes:
+            hole.is_active = False
+            hole.pop_progress = 0.0
+            hole.was_tapped = False
+            hole.tap_animation = 0.0
 
     def _spawn_character(self) -> None:
         """キャラクターを出現させる"""
@@ -405,6 +482,11 @@ class MoguraTatakiGame(BaseGame):
 
         self.pop_sound = self._create_pop_sound()
         self.tap_sound = self._create_tap_sound()
+        self.finish_sound = self._create_finish_sound()
+
+        # スタート画面から開始
+        self.game_state = GameState.START
+        self._reset_game()
 
     def handle_events(self, events: list[pygame.event.Event]) -> None:
         """イベント処理"""
@@ -420,26 +502,61 @@ class MoguraTatakiGame(BaseGame):
                 if event.button == 1:
                     x, y = event.pos
 
-                    # 穴のクリック判定
-                    for hole in self.holes:
-                        if hole.is_active and not hole.was_tapped:
-                            # 顔の領域で判定（穴の上部）
-                            face_rect = pygame.Rect(
-                                hole.x - 50,
-                                hole.y - 80,
-                                100,
-                                100
-                            )
-                            if face_rect.collidepoint(x, y) and hole.pop_progress > 0.5:
-                                hole.was_tapped = True
-                                hole.tap_animation = 1.0
-                                char = self.characters[hole.character_index]
-                                self._spawn_particles(hole.x, hole.y - 40, char.color)
-                                self._play_tap_sound()
-                                break
+                    # スタート画面：スタートボタン
+                    if self.game_state == GameState.START:
+                        if self.start_button_rect.collidepoint(x, y):
+                            self.game_state = GameState.PLAYING
+                            self._reset_game()
+
+                    # 結果画面：もういちどボタン
+                    elif self.game_state == GameState.RESULT:
+                        if self.retry_button_rect.collidepoint(x, y):
+                            self.game_state = GameState.START
+                            self._reset_game()
+
+                    # プレイ中：穴のクリック判定
+                    elif self.game_state == GameState.PLAYING:
+                        for hole in self.holes:
+                            if hole.is_active and not hole.was_tapped:
+                                # 顔の領域で判定（穴の上部）
+                                face_rect = pygame.Rect(
+                                    hole.x - 50,
+                                    hole.y - 80,
+                                    100,
+                                    100
+                                )
+                                if face_rect.collidepoint(x, y) and hole.pop_progress > 0.5:
+                                    hole.was_tapped = True
+                                    hole.tap_animation = 1.0
+                                    self.score += 1  # スコア加算
+                                    char = self.characters[hole.character_index]
+                                    self._spawn_particles(hole.x, hole.y - 40, char.color)
+                                    self._play_tap_sound()
+                                    break
 
     def update(self, dt: float) -> None:
         """更新処理"""
+        # パーティクル更新（全状態で実行）
+        for particle in self.particles[:]:
+            particle["x"] += particle["vx"] * dt
+            particle["y"] += particle["vy"] * dt
+            particle["vy"] += 300 * dt  # 重力
+            particle["life"] -= dt
+            if particle["life"] <= 0:
+                self.particles.remove(particle)
+
+        # プレイ中以外は他の更新をスキップ
+        if self.game_state != GameState.PLAYING:
+            return
+
+        # タイマー更新
+        self.remaining_time -= dt
+        if self.remaining_time <= 0:
+            self.remaining_time = 0
+            self.game_state = GameState.RESULT
+            self._play_finish_sound()
+            return
+
         # 出現タイマー
         self.spawn_timer -= dt
         if self.spawn_timer <= 0 and self.active_count < 3:
@@ -471,15 +588,6 @@ class MoguraTatakiGame(BaseGame):
                             hole.is_active = False
                             self.active_count -= 1
 
-        # パーティクル更新
-        for particle in self.particles[:]:
-            particle["x"] += particle["vx"] * dt
-            particle["y"] += particle["vy"] * dt
-            particle["vy"] += 300 * dt  # 重力
-            particle["life"] -= dt
-            if particle["life"] <= 0:
-                self.particles.remove(particle)
-
     def draw(self) -> None:
         """描画処理"""
         # 背景（草原）
@@ -491,15 +599,69 @@ class MoguraTatakiGame(BaseGame):
             color = (int(130 + alpha), int(180 + alpha), int(80 + alpha))
             pygame.draw.rect(self.screen, color, (0, i, self.width, 20))
 
+        # 状態に応じた描画
+        if self.game_state == GameState.START:
+            self._draw_start_screen()
+        elif self.game_state == GameState.PLAYING:
+            self._draw_playing_screen()
+        elif self.game_state == GameState.RESULT:
+            self._draw_result_screen()
+
+        # 戻るボタン（常に表示）
+        self.back_button.draw(self.screen)
+
+    def _draw_start_screen(self) -> None:
+        """スタート画面を描画"""
         # タイトル
-        title_text = self.title_font.render("もぐらたたき", True, (60, 80, 40))
-        title_rect = title_text.get_rect(centerx=self.width // 2, top=20)
+        title_text = self.big_font.render("もぐらたたき", True, (60, 80, 40))
+        title_rect = title_text.get_rect(centerx=self.width // 2, top=120)
 
         # タイトル背景
-        bg_rect = title_rect.inflate(40, 20)
-        pygame.draw.rect(self.screen, (255, 255, 255, 180), bg_rect, border_radius=15)
-        pygame.draw.rect(self.screen, (100, 150, 80), bg_rect, 3, border_radius=15)
+        bg_rect = title_rect.inflate(60, 30)
+        pygame.draw.rect(self.screen, WHITE, bg_rect, border_radius=20)
+        pygame.draw.rect(self.screen, (100, 150, 80), bg_rect, 4, border_radius=20)
         self.screen.blit(title_text, title_rect)
+
+        # 説明
+        desc_text = self.hint_font.render("60びょうで どうぶつを たくさんタッチしよう！", True, (80, 100, 60))
+        desc_rect = desc_text.get_rect(centerx=self.width // 2, top=title_rect.bottom + 40)
+        self.screen.blit(desc_text, desc_rect)
+
+        # スタートボタン
+        pygame.draw.rect(self.screen, BABY_GREEN, self.start_button_rect, border_radius=20)
+        pygame.draw.rect(self.screen, (80, 150, 30), self.start_button_rect, 4, border_radius=20)
+
+        start_text = self.button_font.render("ゲームスタート！", True, WHITE)
+        start_text_rect = start_text.get_rect(center=self.start_button_rect.center)
+        self.screen.blit(start_text, start_text_rect)
+
+        # 穴の装飾（背景用）
+        for hole in self.holes:
+            self._draw_hole(self.screen, hole)
+
+    def _draw_playing_screen(self) -> None:
+        """プレイ画面を描画"""
+        # タイマー表示
+        seconds = int(self.remaining_time)
+        timer_color = BABY_RED if seconds <= 10 else (60, 80, 40)
+        timer_text = self.timer_font.render(f"{seconds}", True, timer_color)
+        timer_rect = timer_text.get_rect(right=self.width - 30, top=20)
+
+        # タイマー背景
+        timer_bg = timer_rect.inflate(30, 10)
+        pygame.draw.rect(self.screen, WHITE, timer_bg, border_radius=10)
+        pygame.draw.rect(self.screen, (100, 150, 80), timer_bg, 3, border_radius=10)
+        self.screen.blit(timer_text, timer_rect)
+
+        # スコア表示
+        score_text = self.score_font.render(f"スコア: {self.score}", True, (60, 80, 40))
+        score_rect = score_text.get_rect(centerx=self.width // 2, top=20)
+
+        # スコア背景
+        score_bg = score_rect.inflate(40, 15)
+        pygame.draw.rect(self.screen, WHITE, score_bg, border_radius=10)
+        pygame.draw.rect(self.screen, (100, 150, 80), score_bg, 3, border_radius=10)
+        self.screen.blit(score_text, score_rect)
 
         # 穴とキャラクター
         for hole in self.holes:
@@ -507,7 +669,6 @@ class MoguraTatakiGame(BaseGame):
 
         # パーティクル
         for particle in self.particles:
-            alpha = int(255 * (particle["life"] / 0.5))
             size = int(particle["size"] * (particle["life"] / 0.5))
             if size > 0:
                 pygame.draw.circle(
@@ -517,10 +678,46 @@ class MoguraTatakiGame(BaseGame):
                     size
                 )
 
-        # ヒント
-        hint_text = self.hint_font.render("どうぶつをタッチしよう！", True, (80, 100, 60))
-        hint_rect = hint_text.get_rect(centerx=self.width // 2, bottom=self.height - 30)
-        self.screen.blit(hint_text, hint_rect)
+    def _draw_result_screen(self) -> None:
+        """結果画面を描画"""
+        # 半透明オーバーレイ
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        overlay.fill((255, 255, 255, 180))
+        self.screen.blit(overlay, (0, 0))
 
-        # 戻るボタン
-        self.back_button.draw(self.screen)
+        # 結果タイトル
+        result_text = self.big_font.render("けっか", True, (60, 80, 40))
+        result_rect = result_text.get_rect(centerx=self.width // 2, top=150)
+        self.screen.blit(result_text, result_rect)
+
+        # スコア表示（大きく）
+        score_text = self.big_font.render(f"{self.score} てん", True, BABY_ORANGE)
+        score_rect = score_text.get_rect(centerx=self.width // 2, top=result_rect.bottom + 30)
+
+        # スコア背景
+        score_bg = score_rect.inflate(80, 40)
+        pygame.draw.rect(self.screen, WHITE, score_bg, border_radius=20)
+        pygame.draw.rect(self.screen, BABY_ORANGE, score_bg, 5, border_radius=20)
+        self.screen.blit(score_text, score_rect)
+
+        # 褒め言葉
+        if self.score >= 30:
+            praise = "すごーい！"
+        elif self.score >= 20:
+            praise = "がんばったね！"
+        elif self.score >= 10:
+            praise = "いいね！"
+        else:
+            praise = "たのしかったね！"
+
+        praise_text = self.title_font.render(praise, True, BABY_PINK)
+        praise_rect = praise_text.get_rect(centerx=self.width // 2, top=score_bg.bottom + 30)
+        self.screen.blit(praise_text, praise_rect)
+
+        # もういちどボタン
+        pygame.draw.rect(self.screen, BABY_BLUE, self.retry_button_rect, border_radius=15)
+        pygame.draw.rect(self.screen, (20, 100, 160), self.retry_button_rect, 4, border_radius=15)
+
+        retry_text = self.button_font.render("もういちど", True, WHITE)
+        retry_text_rect = retry_text.get_rect(center=self.retry_button_rect.center)
+        self.screen.blit(retry_text, retry_text_rect)
