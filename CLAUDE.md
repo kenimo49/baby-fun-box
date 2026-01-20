@@ -15,6 +15,9 @@
 | ---------------------------- | ----------------------------------------------------------- | -------- |
 | **新規ゲーム追加**           | [docs/guide/new-game.md](./docs/guide/new-game.md)          | 10 分    |
 | **既存ゲーム修正**           | [apps/](./apps/) → 該当ゲームのディレクトリ                 | 5 分     |
+| **配布パッケージ作成**       | [docs/guide/create-package.md](./docs/guide/create-package.md) | 5 分  |
+| **Ubuntu インストール**      | [docs/guide/ubuntu-installation.md](./docs/guide/ubuntu-installation.md) | 5 分 |
+| **実機への導入**             | [docs/guide/deploy-to-device.md](./docs/guide/deploy-to-device.md) | 10 分 |
 | **Pygame 基礎学習**          | [docs/knowledge/](./docs/knowledge/)                        | 15 分    |
 | **設計思想の理解**           | [docs/design/](./docs/design/)                              | 10 分    |
 | **システム理解（新規参加）** | [docs/README.md](./docs/README.md)                          | 30 分    |
@@ -29,6 +32,7 @@ graph TD
     Task -->|既存ゲーム修正| ExistGame[apps/ 該当ゲーム確認]
     Task -->|バグ修正| Bug[デバッグタスク]
     Task -->|ドキュメント作成| Doc[ドキュメント作成ガイド]
+    Task -->|配布・デプロイ| Deploy[配布タスク]
 
     NewGame --> Template[テンプレートを使用]
     Template --> Implement([実装開始])
@@ -47,6 +51,14 @@ graph TD
 
     Doc --> DocGuide[guide/documentation.md]
     DocGuide --> CreateDoc([ドキュメント作成])
+
+    Deploy --> DeployType{何をする？}
+    DeployType -->|パッケージ作成| Pkg[guide/create-package.md]
+    DeployType -->|Ubuntuにインストール| Inst[guide/ubuntu-installation.md]
+    DeployType -->|実機に導入| Device[guide/deploy-to-device.md]
+    Pkg --> Done([配布準備完了])
+    Inst --> Done
+    Device --> Done
 ```
 
 ---
@@ -67,6 +79,10 @@ baby-fun-box/
 │   ├── design/            # 設計思想（WHY）
 │   ├── guide/             # ガイドライン
 │   └── _templates/        # テンプレート
+├── scripts/               # ビルド・配布スクリプト
+│   ├── build.sh           # PyInstaller ビルドスクリプト
+│   ├── install.sh         # Ubuntu インストーラー
+│   └── baby-fun-box.desktop  # デスクトップエントリ
 └── shared/                # 共有ライブラリ・ユーティリティ
 ```
 
